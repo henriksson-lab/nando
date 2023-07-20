@@ -120,6 +120,8 @@ SelectClusteringForNando <- function(nando_dir, use_clusterings){
 
 #' Helper function
 #' 
+#' @import stringr
+#' 
 SummarizeShapByCluster_summarizeClusterReg <- function(shap, for_category, onecat, curgene){
   #Summarize values for each group of cells
   foreach(onecat = unique(for_category), .combine = "rbind",  .verbose = F) %do% {
@@ -147,6 +149,9 @@ SummarizeShapByCluster_summarizeClusterReg <- function(shap, for_category, oneca
 }
 
 #' Helper function
+#' 
+#' @import stringr
+#' 
 SummarizeShapByCluster_summarizeClusterNoreg <- function(shap, for_category, onecat, curgene){
   foreach(onecat = unique(for_category), .combine = "rbind",  .verbose = F) %do% {
     shapcat <- colMeans(abs(shap[for_category==onecat,,drop=FALSE])) 
