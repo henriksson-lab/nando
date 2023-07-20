@@ -887,8 +887,9 @@ ComputeNandoNetworkSimilarity <- function(nandonets, method=c("jaccard","ssi")){
   #Fuzzy Jaccard index
   if(method=="jaccard"){
     for(i in 1:numnet){
+      print(i)
       for(j in 1:numnet){
-        print(paste(i,j))
+        #print(paste(i,j))
         out[i,j] <- sum(pmin(tocompare[,i], tocompare[,j])) / sum(pmax(tocompare[,i], tocompare[,j]))
       }
     }
@@ -897,8 +898,9 @@ ComputeNandoNetworkSimilarity <- function(nandonets, method=c("jaccard","ssi")){
   #Fuzzy SSI
   if(method=="ssi"){
     for(i in 1:numnet){
+      print(i)
       for(j in 1:numnet){
-        print(paste(i,j))
+        #print(paste(i,j))
         out[i,j] <- sum(pmin(tocompare[,i],tocompare[,j])) / min(sum(tocompare[,i]),sum(tocompare[,j]))
         #Could precompute sums at the end to speed up marginally
       }
@@ -933,13 +935,13 @@ TransitionMatrixToIgraph <- function(tmat){
 
 
 
+
+
+
+
 ################################################################################
-################### GO analysis ################################################
+################### Seurat link ################################################
 ################################################################################
-
-
-
-
 
 
 
@@ -1053,4 +1055,97 @@ MeltSparsematrix <- function(mat){
 
 
 
+
+################################################################################
+################### GO analysis ################################################
+################################################################################
+
+
+
+
+################################################################################
+################### Network simplification #####################################
+################################################################################
+
+
+#keep_genes
+
+
+#' Compute an equivalent transition matrix where only a subset of genes are kept.
+#' This currently only works over the set of irreducible TFs.
+#' The output can be used to visualize simplified GRNs
+#' 
+#' @param net NandoNetwork
+#' @param keep_genes Genes to retain in the network
+#' @return A transition matrix
+#' 
+#' @export
+ComputeSimplifiedMatrix.NandoNetwork <- function(net, keep_genes){
+
+  #Get the full matrix before simplification
+  tmat <- TransitionMatrix(net, subsetGene=net@list_irreducible, subsetTF=net@list_irreducible)
   
+  #Do NOT use a sparse matrix here; the structure will be messed up over time,
+  #forcing expensive reallocations
+  tmat <- as.matrix(tmat)
+
+  #Iteratively remove unwanted genes
+  while(TRUE){
+    remove_index <- which(!(rownames(tmat) %in% keep_genes))
+    if(length(remove_index)==0){
+      break;
+    }
+    ri <- remove_index[1]
+    print(paste("To remove: ", length(remove_index), colnames(tmat)[ri]))
+    
+    #For each gene except the one to remove, add 2nd order contributions to gene to keep
+    allbut <- setdiff(which(tmat[,ri]!=0), ri)
+    for(ki in allbut){
+      
+      #Remove any self-link of target gene by a renormalization 
+      tmat[ri,ri] <- 0
+      tmat[ri,] <- tmat[ri,]/sum(tmat[ri,])
+
+      #Remove 2nd order link
+      ri_p <- tmat[ki,ri]
+      tmat[ki,ri] <- 0
+      tmat[ki,] <- tmat[ki,] + ri_p*tmat[ri,]
+    }
+    
+    #Subset matrix to remove this gene (ideally later, can we avoid multiple subsets?)
+    #tmat <- tmat[-ri,-ri]
+    
+    allbut <- 1:ncol(tmat)
+    allbut <- allbut[allbut!=ri]
+    tmat <- tmat[allbut,allbut]
+  }    
+  #print(rowSums(tmat))  #maybe check
+  #tmat <- as.matrix(tmat)
+  tmat  
+}
+
+
+#' TODO just cannot make this one work. not clue why...
+#' 
+#' Compute an equivalent transition matrix where only a subset of genes are kept.
+#' This currently only works over the set of irreducible TFs.
+#' The output can be used to visualize simplified GRNs
+#' 
+#' @param nandonets ListOfNandoNetwork
+#' @param keep_genes Genes to retain in the network
+#' @return List of transition matrices
+#' 
+#' @export
+ComputeSimplifedMatrix.ListOfNandoNetwork <- function(nandonets, keep_genes){
+  list_nets <- foreach (cur_cat = names(nandonets@nets), .combine=c, .verbose = F) %do% {
+    print(cur_cat)
+    ComputeSimplifiedMatrix(nandonets@nets[[cur_cat]], keep_genes)
+  }  
+  names(list_nets) <- names(nandonets@nets)
+  list_nets
+}
+
+
+
+
+

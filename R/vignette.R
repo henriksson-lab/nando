@@ -64,7 +64,7 @@ if(FALSE){
   }
   
   ### How similar are the networks?
-  ComputeNandoNetworkSimilarity(nandonets)
+  netsim <- ComputeNandoNetworkSimilarity(nandonets)
   
   ### Compute steady states. This can be run using multiple CPUs if foreach set up
   nandonets <- ComputeSteadyState(nandonets)
@@ -80,6 +80,14 @@ if(FALSE){
   ss <- SteadyStateMatrix(nandonets)
   PlotTopProbabilityMatrix(ss, min.pmean = 1e-2)
   
+  ### Compute equivalent simplifed steady state networks
+  net <- nandonets@nets[[1]]
+  net@ss <- net@ss[order(net@ss, decreasing = TRUE)]
+  keep_genes <- names(net@ss)[1:15]
+  tmat <- ComputeSimplifiedMatrix(net, keep_genes)
+  plot(TransitionMatrixToIgraph(tmat))
+  
+    
   ### Comparison of two steady states. If it changes, which edges does the probability flow over?
   flow <- MeltSparsematrix(ComputeSteadyStateChangeEdgeflow(nandonets@nets[[1]],nandonets@nets[[2]]))
   flow <- flow[order(flow$value),]
