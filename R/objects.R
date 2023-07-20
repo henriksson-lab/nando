@@ -1,5 +1,5 @@
 #' @importFrom methods setClass
-#' @importClassesFrom Matrix sparseMatrix
+#' @importClassesFrom Matrix dgCMatrix
 #' @importClassesFrom SeuratObject Seurat
 NULL
 
