@@ -856,13 +856,23 @@ GetWalktrapEntropy <- function(walktraps, keep_genes=NULL, keep_steps=NULL){
 ComputeNandoNetworkSimilarity <- function(nandonets, method=c("jaccard","ssi")){
   method <- match.arg(method)
 
-  #Turn all networks into sparse transition matrices
-  list_tmat <- foreach (x = names(nandonets@nets), .combine=c, .verbose = F) %do% {
+  #Obtain all network edges. Long format
+  print("Gathering all networks in comparable fromat")
+  tmat_long <- foreach (x = names(nandonets@nets), .combine=rbind, .verbose = F) %do% {
     print(x)
-    TransitionMatrix(nandonets@nets[[x]])
+    out <- MeltSparsematrix(TransitionMatrix(nandonets@nets[[x]]))
+    out$net <- x
+    data.frame(
+      net=out$net,
+      p=out$value,
+      edge=paste(out$row,out$col)
+    )
   }
+  tocompare <- reshape2::acast(tmat_long, edge~net, value.var="p", fill=0)
+  
   
   #Allocate output matrix
+  print("Doing comparisons")
   numnet <- length(nandonets@nets)
   out <- matrix(nrow=numnet, ncol=numnet)
   colnames(out) <- names(nandonets@nets)
@@ -871,7 +881,7 @@ ComputeNandoNetworkSimilarity <- function(nandonets, method=c("jaccard","ssi")){
   #Perform comparisons.
   #Note: pmin/pmax seem to do dense expansion. Comparison can be made in linear time and extremely fast,
   #but would likely need to be implemented in C
-
+  
   #Potential optimization is to use the symmetry of the matrix. Compute half, add transposed. fill diagonal with 1
   
   #Fuzzy Jaccard index
@@ -879,9 +889,9 @@ ComputeNandoNetworkSimilarity <- function(nandonets, method=c("jaccard","ssi")){
     for(i in 1:numnet){
       for(j in 1:numnet){
         print(paste(i,j))
-        out[i,j] <- sum(pmin(list_tmat[[i]], list_tmat[[j]])) / sum(pmax(list_tmat[[i]], list_tmat[[j]]))
-        }
+        out[i,j] <- sum(pmin(tocompare[,i], tocompare[,j])) / sum(pmax(tocompare[,i], tocompare[,j]))
       }
+    }
   }
   
   #Fuzzy SSI
@@ -889,7 +899,7 @@ ComputeNandoNetworkSimilarity <- function(nandonets, method=c("jaccard","ssi")){
     for(i in 1:numnet){
       for(j in 1:numnet){
         print(paste(i,j))
-        out[i,j] <- sum(pmin(list_tmat[[i]],list_tmat[[j]])) / min(sum(list_tmat[[i]]),sum(list_tmat[[j]]))
+        out[i,j] <- sum(pmin(tocompare[,i],tocompare[,j])) / min(sum(tocompare[,i]),sum(tocompare[,j]))
         #Could precompute sums at the end to speed up marginally
       }
     }
@@ -897,7 +907,6 @@ ComputeNandoNetworkSimilarity <- function(nandonets, method=c("jaccard","ssi")){
   
   out
 }
-
 
 
 
