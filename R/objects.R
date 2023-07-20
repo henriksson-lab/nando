@@ -8,7 +8,7 @@ NULL
 setClassUnion("numericOrNULL",members=c("numeric", "NULL"))
 setClassUnion("data.frameOrNULL",members=c("data.frame", "NULL"))
 setClassUnion("characterOrNULL",members=c("character", "NULL"))
-setClassUnion("sparseMatrixOrNULL",members=c("sparseMatrix", "NULL"))
+setClassUnion("sparseMatrixOrNULL",members=c("dgCMatrix", "NULL"))
 
 
 ################################################################################
