@@ -7,3 +7,9 @@ if(FALSE){
 }
 
 
+
+# Use this to update the documentation
+if(FALSE){
+  setwd("/home/mahogny/github/Nando")
+  devtools::document()
+}

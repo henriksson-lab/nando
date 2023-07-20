@@ -4,12 +4,6 @@ library(stringr)
 library(doParallel)
 library(foreach)
 
-# Use this to update the documentation
-if(FALSE){
-  setwd("/corgi/henriksson/jupyter/tcellpaper/Nando")
-  devtools::document()
-}
-
 ################################################################################
 ################### Running of Pando ###########################################
 ################################################################################
@@ -1044,10 +1038,10 @@ ComputeSteadyStateChangeEdgeflow <- function(netA, netB){
 
 #' Melt a sparse matrix to long format
 MeltSparsematrix <- function(mat){
-  out <- as(mat, "TsparseMatrix")
+  mat <- as(mat, "TsparseMatrix")
   data.frame(
-    row=rownames(mat)[out@i+1],
-    col=colnames(mat)[out@j+1],
+    row=rownames(mat)[mat@i+1],
+    col=colnames(mat)[mat@j+1],
     value=mat@x
   )
 }
@@ -1148,4 +1142,43 @@ ComputeSimplifedMatrix.ListOfNandoNetwork <- function(nandonets, keep_genes){
 
 
 
+#' Export transition matrix to a CSV file for e.g. reading in cytoscape
+#' 
+#' @param tmat A transition matrix
+#' @param fname Name of a csv file to write to
+#' 
+ExportTransitionMatrixCSV <- function(tmat, fname){
+  long_tmat <- MeltSparsematrix(tmat)
+  write.csv(
+    data.frame(
+      from=long_tmat$row,
+      to=long_tmat$col,
+      p=long_tmat$value,
+      log_p=log10(long_tmat$value)
+    ),
+    fname,
+    row.names = FALSE
+  )
+}
+
+
+#' Return what type of gene each of them is
+#' 
+#' @param net A NandoNetwork
+#' @return A data.frame with two columns, gene and category
+GeneCategoriesDF <- function(net){
+  list_upstream_tf <- setdiff(net@list_tfs,net@list_irreducible)
+  data.frame(
+    gene=c(
+      list_upstream_tf, 
+      net@list_irreducible, 
+      net@list_nontfs
+    ),
+    category=c(
+      rep("UpstreamTF",length(list_upstream_tf)),
+      rep("IrreducibleTF",length(net@list_irreducible)),
+      rep("NonTF",length(net@list_nontfs))
+    )
+  )
+}
 

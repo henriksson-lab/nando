@@ -12,6 +12,10 @@ if(FALSE){
   ### Experimental directory
   nando_dir <- "/corgi/websites/tcellnet/expnando"
 
+  if(FALSE){
+    adata <- readRDS(file.path(nando_dir,"allcells.RDS"))
+  }
+  
   ################################################################################
   ################### Running Pando & first part of Nando data ###################
   ################################################################################
@@ -37,11 +41,11 @@ if(FALSE){
     donor_dice=sprintf("donor%s %s",adata$donor_id, adata$pred.dice),
     donor_ALL=sprintf("donor%s %s",adata$donor_id, "ALL")
   )
-  use_clusterings$ALL <- "ALL"
-  use_clusterings <- data.frame(
-    row.names=colnames(adata)
-  )
-  use_clusterings$ALL <- "ALL"
+  # use_clusterings$ALL <- "ALL"
+  # use_clusterings <- data.frame(
+  #   row.names=colnames(adata)
+  # )
+  # use_clusterings$ALL <- "ALL"
   SelectClusteringForNando(nando_dir, use_clusterings)
   
   ### Collect SHAPs per network. This can be run in parallel using SLURM to speed it up (see separate vignette)
@@ -60,7 +64,8 @@ if(FALSE){
   
   ### For testing, just pick a few
   if(TRUE){
-    nandonets@nets <- nandonets@nets[1:4]
+    names(nandonets@nets)
+    nandonets@nets <- nandonets@nets[1:4] #The first donors for the "ALL" network
   }
   
   ### How similar are the networks?
@@ -80,14 +85,18 @@ if(FALSE){
   ss <- SteadyStateMatrix(nandonets)
   PlotTopProbabilityMatrix(ss, min.pmean = 1e-2)
   
-  ### Compute equivalent simplifed steady state networks
+  ### Compute a simplified network that is easier to visualize
   net <- nandonets@nets[[1]]
   net@ss <- net@ss[order(net@ss, decreasing = TRUE)]
-  keep_genes <- names(net@ss)[1:15]
+  keep_genes <- names(net@ss)[1:20]
   tmat <- ComputeSimplifiedMatrix(net, keep_genes)
   plot(TransitionMatrixToIgraph(tmat))
   
-    
+  ### Save the network 
+  ExportTransitionMatrixCSV(ComputeSimplifiedMatrix(net, keep_genes), "/corgi/websites/tcellnet/graphs/top20simplified.csv")
+  ExportTransitionMatrixCSV(TransitionMatrix(net), "/corgi/websites/tcellnet/graphs/fullnetwork.edges.csv")
+  write.csv(GeneCategoriesDF(net),"/corgi/websites/tcellnet/graphs/fullnetwork.genecat.csv", row.names = FALSE)
+
   ### Comparison of two steady states. If it changes, which edges does the probability flow over?
   flow <- MeltSparsematrix(ComputeSteadyStateChangeEdgeflow(nandonets@nets[[1]],nandonets@nets[[2]]))
   flow <- flow[order(flow$value),]
@@ -182,13 +191,14 @@ if(FALSE){
   #Plot: Some examples of genes
   DimPlot(object = gdata[,gdata$fromgene %in% unique(gdata$fromgene)[1:20]], reduction = 'umap', group.by = "fromgene", label = TRUE)
   
-}
 
 
 ################################################################################
 ################### Shiny Nando ################################################
 ################################################################################
 
-ExportShinyNando(nandonets)
+  ExportShinyNando(nandonets)
 
+
+}
 

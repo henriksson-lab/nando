@@ -118,13 +118,10 @@ PrepareProbabilityMatrixH5 <- function(fname){
   )  
 }
 
-h5hp <- PrepareProbabilityMatrixH5(file.path(nando_dir,"hp.h5"))
-h5ss <- PrepareProbabilityMatrixH5(file.path(nando_dir,"ss.h5"))
+if(FALSE){
 
+  h5hp <- PrepareProbabilityMatrixH5(file.path(nando_dir,"hp.h5"))
+  h5ss <- PrepareProbabilityMatrixH5(file.path(nando_dir,"ss.h5"))
+  
 
-
-StoredProbabilityMatrixH5
-
-StoredProbabilityMatrixH5
-
-
+}
