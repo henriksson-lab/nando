@@ -189,11 +189,11 @@ SummarizeShapByCluster_summarizeClusterNoreg <- function(shap, for_category, one
 #' 
 #' @param shap_dir Directory with SHAP per cell
 #' @param list_files_to_process List of files to process
-#' @param taskid Process ID when multiprocessing, or 0
+#' @param task_id Process ID when multiprocessing, or 0
 #' @param summarize_shap_for_cluster Clusterings of cells
 #' 
 #' @export
-SummarizeShapByCluster <- function(nando_dir, shap_dir, list_files_to_process, summarize_shap_for_cluster, taskid){
+SummarizeShapByCluster <- function(nando_dir, shap_dir, list_files_to_process, summarize_shap_for_cluster, task_id){
   
   #Create place to store summaries
   if(!file.exists(shap_dir)){
@@ -307,7 +307,7 @@ SummarizeShapByClusterParallel <- function(nando_dir){
   
   ## Do the actual work
   SummarizeShapByCluster(
-    nando_dir, shap_dir, list_files_to_process, summarize_shap_for_cluster, taskid)
+    nando_dir, shap_dir, list_files_to_process, summarize_shap_for_cluster, task_id)
   
   print("Finished summarizing shaps")
 }
