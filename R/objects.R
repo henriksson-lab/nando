@@ -1,3 +1,8 @@
+#' @importFrom methods setClass
+#' @importClassesFrom Matrix sparseMatrix
+#' @importClassesFrom SeuratObject Seurat
+NULL
+
 
 # These let us specify NULL values initially
 setClassUnion("numericOrNULL",members=c("numeric", "NULL"))
