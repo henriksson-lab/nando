@@ -3,8 +3,6 @@
 S3method(ComputeHittingProbability,ListOfNandoNetwork)
 S3method(ComputeNandoWalktrap,ListOfNandoNetwork)
 S3method(ComputeNandoWalktrap,NandoNetwork)
-S3method(ComputeSimplifedMatrix,ListOfNandoNetwork)
-S3method(ComputeSimplifedMatrix,NandoNetwork)
 S3method(ComputeSteadyState,ListOfNandoNetwork)
 S3method(ComputeSteadyState,NandoNetwork)
 S3method(TransitionMatrix,NandoNetwork)
