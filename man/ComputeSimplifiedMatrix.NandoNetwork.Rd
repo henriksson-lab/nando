@@ -6,7 +6,7 @@
 This currently only works over the set of irreducible TFs.
 The output can be used to visualize simplified GRNs}
 \usage{
-\method{ComputeSimplifiedMatrix}{NandoNetwork}(net, keep_genes)
+\method{ComputeSimplifedMatrix}{NandoNetwork}(net, keep_genes)
 }
 \arguments{
 \item{net}{NandoNetwork}

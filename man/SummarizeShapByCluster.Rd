@@ -10,7 +10,7 @@ SummarizeShapByCluster(
   shap_dir,
   list_files_to_process,
   summarize_shap_for_cluster,
-  taskid
+  task_id
 )
 }
 \arguments{
@@ -20,7 +20,7 @@ SummarizeShapByCluster(
 
 \item{summarize_shap_for_cluster}{Clusterings of cells}
 
-\item{taskid}{Process ID when multiprocessing, or 0}
+\item{task_id}{Process ID when multiprocessing, or 0}
 }
 \description{
 This function is not meant to be used directly; most users should rather use a wrapper

@@ -327,6 +327,7 @@ SummarizeShapByClusterParallel <- function(nando_dir){
 #' @param includegenes Names of genes to forcefully add as row/columns in the matrix
 #' @return Transition matrix, in sparse matrix format to save memory
 #' 
+#' @import Matrix
 #' @export
 #' 
 TransitionMatrix.NandoNetwork <- function(nandonet, subsetGene=NULL, subsetTF=NULL, includegenes=c()){
@@ -346,6 +347,7 @@ TransitionMatrix.NandoNetwork <- function(nandonet, subsetGene=NULL, subsetTF=NU
 #' @param includegenes Names of genes to forcefully add as row/columns in the matrix
 #' @return Transition matrix, in sparse matrix format to save memory
 #' 
+#' @import Matrix
 #' @export
 #' 
 TransitionMatrix.data.frame <- function(onegrn, subsetGene=NULL, subsetTF=NULL, includegenes=c()){
@@ -382,7 +384,7 @@ TransitionMatrix.data.frame <- function(onegrn, subsetGene=NULL, subsetTF=NULL, 
 
   #if there are no outgoing edges from a node, need to add one to itself at minimum
   #print(paste("number of absorbing states:", sum(rowSums(newmat)==0)))
-  diag(newmat)[which(rowSums(newmat)==0)] <- 1
+  Matrix::diag(newmat)[which(rowSums(newmat)==0)] <- 1
 
   newmat  
 }
@@ -390,6 +392,8 @@ TransitionMatrix.data.frame <- function(onegrn, subsetGene=NULL, subsetTF=NULL, 
 #' Helper function: Convert a sparse transition matrix into one for the R markovchain library
 #' 
 #' @param mat Transition matrix in sparse format
+
+#' @import Matrix
 #' @return A markovchain object
 #' 
 transitionmatrix_to_mc <- function(mat){
@@ -416,6 +420,7 @@ CreateOneNandoNetwork <- function(shaps){
 #' @param keep_clusters Optional list of clusters to extract; default is all of them
 #' @return A ListofNandoNetwork object
 #' 
+#' @import foreach
 #' @export
 LoadNandoNetworks <- function(nando_dir, keep_clusters=NULL){
 
@@ -567,15 +572,23 @@ ComputeHittingProbability.NandoNetwork <- function(nandonet){
 #' @return A ListOfNandoNetwork object with hitting probability set
 #' 
 #' @rdname ComputeHittingProbability
+#' @import foreach
 #' @export
 #' @method ComputeHittingProbability ListOfNandoNetwork
 ComputeHittingProbability.ListOfNandoNetwork <- function(nandonets){
 
-  outlist <- foreach (x = names(nandonets@nets), .combine=c, .verbose = F) %do% {
+  
+  outlist <- list()
+  for(x in names(nandonets@nets)){
     print(x)
-    ComputeHittingProbability.NandoNetwork(nandonets@nets[[x]])
+    outlist[[x]] <- ComputeHittingProbability.NandoNetwork(nandonets@nets[[x]])
   }
-  names(outlist) <- names(nandonets@nets)
+
+  # outlist <- foreach (x = names(nandonets@nets), .combine=c, .verbose = F) %do% {
+  #   print(x)
+  #   ComputeHittingProbability.NandoNetwork(nandonets@nets[[x]])
+  # }
+  # names(outlist) <- names(nandonets@nets)
   nandonets@nets <- outlist
   nandonets
 }
@@ -615,12 +628,18 @@ ComputeSteadyState.NandoNetwork <- function(nandonet){
 #' @export
 #' @method ComputeSteadyState ListOfNandoNetwork
 ComputeSteadyState.ListOfNandoNetwork <- function(nandonets){
-  
-  outlist <- foreach (x = names(nandonets@nets), .combine=c, .verbose = F) %do% {
+  outlist <- list()
+  for(x in names(nandonets@nets)){
     print(x)
-    ComputeSteadyState.NandoNetwork(nandonets@nets[[x]])
+    outlist[[x]] <- ComputeSteadyState.NandoNetwork(nandonets@nets[[x]])
   }
-  names(outlist) <- names(nandonets@nets)
+  
+  #buggy?
+  # outlist <- foreach (x = names(nandonets@nets), .combine=c, .verbose = F) %do% {
+  #   print(x)
+  #   ComputeSteadyState.NandoNetwork(nandonets@nets[[x]])
+  # }
+  #names(outlist) <- names(nandonets@nets)
   nandonets@nets <- outlist
   nandonets
 }
@@ -1057,12 +1076,6 @@ MeltSparsematrix <- function(mat){
 
 
 
-################################################################################
-################### GO analysis ################################################
-################################################################################
-
-
-
 
 ################################################################################
 ################### Network simplification #####################################
@@ -1081,6 +1094,7 @@ MeltSparsematrix <- function(mat){
 #' @return A transition matrix
 #' 
 #' @export
+#' @method ComputeSimplifedMatrix NandoNetwork
 ComputeSimplifiedMatrix.NandoNetwork <- function(net, keep_genes){
 
   #Get the full matrix before simplification
@@ -1137,6 +1151,7 @@ ComputeSimplifiedMatrix.NandoNetwork <- function(net, keep_genes){
 #' @return List of transition matrices
 #' 
 #' @export
+#' @method ComputeSimplifedMatrix ListOfNandoNetwork
 ComputeSimplifedMatrix.ListOfNandoNetwork <- function(nandonets, keep_genes){
   list_nets <- foreach (cur_cat = names(nandonets@nets), .combine=c, .verbose = F) %do% {
     print(cur_cat)
@@ -1188,4 +1203,10 @@ GeneCategoriesDF <- function(net){
     )
   )
 }
+
+
+
+################################################################################
+################### GO analysis ################################################
+################################################################################
 

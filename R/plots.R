@@ -1,5 +1,5 @@
 library(ggplot2)
-
+library(Matrix)
 
 
 # steal from website
@@ -17,9 +17,13 @@ library(ggplot2)
 #' @param nandonets A ListOfNandoNetworks
 #' @return A sparse matrix of hitting probabilities; each row is one network
 #' 
+#' @import Matrix
 #' @export
 #' 
 ComputeHittingProbabilityFromSS <- function(nandonets){
+  
+  #TODO best to generate long format ... ?
+
   hp <- foreach(onecat = names(nandonets@nets), .combine = "rbind",  .verbose = F) %do% {
     nandonet <- nandonets@nets[[onecat]]
     
@@ -29,10 +33,22 @@ ComputeHittingProbabilityFromSS <- function(nandonets){
     longss[1,names(nandonet@ss)] <- nandonet@ss
     
     #ss hitting probability is simply a weighting using ss. Return a one-row matrix
-    longss %*% nandonet@hp
+    out <- longss %*% nandonet@hp
+    colnames(out) <- colnames(nandonet@hp)
+    #print(colnames(out))
+
+    #print(out)
+    df <- data.frame(
+      #cat=onecat,
+      gene=colnames(nandonet@hp),
+      val=out[1,]
+    )
+    df$cat <- onecat#
+    df
   }
-  rownames(hp) <- names(nandonets@nets)
-  hp
+  #rownames(hp) <- names(nandonets@nets)
+  #hp
+  reshape2::acast(hp, cat~gene, value.var="val")
 }
 
 #' For each network, extract steady states. Return as a matrix
@@ -72,15 +88,19 @@ PlotTopProbabilityMatrix <- function(probs, min.pmean=1e-2, dolog=TRUE){
   pmean <- pmean[newo]
   
   #Filter genes
-  probs <- probs[,pmean>min.pmean]
+  probs <- probs[,pmean>min.pmean,drop=FALSE]
 
+  #
+  
   #Produce plot  
   long_probs <- reshape2::melt(probs)
   colnames(long_probs) <- c("cluster","gene","p")
   if(dolog){
-    ggplot(long_probs, aes(cluster, gene, fill=log10(p))) + geom_tile() + labs(y="", x = "", fill = "Log10 p") #+ scale_y_reverse()
+    ggplot(long_probs, aes(cluster, gene, fill=log10(p))) + 
+      geom_tile() + labs(y="", x = "", fill = "Log10 p") + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
   } else {
-    ggplot(long_probs, aes(cluster, gene, fill=p)) + geom_tile() + labs(y="", x = "", fill = "p") #+ scale_y_reverse()
+    ggplot(long_probs, aes(cluster, gene, fill=p)) + 
+      geom_tile() + labs(y="", x = "", fill = "p") + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
   }
 }
 

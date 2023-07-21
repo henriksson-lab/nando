@@ -1,6 +1,7 @@
 
 if(FALSE){
 
+  
   ### The network fitting is able to use all available CPUs if set up correctly
   library(doParallel)
   totalCores = detectCores()
@@ -13,6 +14,8 @@ if(FALSE){
   nando_dir <- "/corgi/websites/tcellnet/expnando"
 
   if(FALSE){
+    library(Seurat)
+    library(Nando)
     adata <- readRDS(file.path(nando_dir,"allcells.RDS"))
   }
   
@@ -38,8 +41,8 @@ if(FALSE){
     ALL="ALL",
     
     #Previous annotation, split over donors to assess replicability
-    donor_dice=sprintf("donor%s %s",adata$donor_id, adata$pred.dice),
-    donor_ALL=sprintf("donor%s %s",adata$donor_id, "ALL")
+    donor_dice=sprintf("%s %s",adata$donor_id, adata$pred.dice),
+    donor_ALL=sprintf("%s %s",adata$donor_id, "ALL")
   )
   # use_clusterings$ALL <- "ALL"
   # use_clusterings <- data.frame(
@@ -63,8 +66,8 @@ if(FALSE){
   #hack. remove any non-dice for speed
   
   ### For testing, just pick a few
-  if(TRUE){
-    names(nandonets@nets)
+  if(FALSE){
+    names(nandonets@nets) <- str_replace_all(names(nandonets@nets),"donordonor","donor")
     nandonets@nets <- nandonets@nets[1:4] #The first donors for the "ALL" network
   }
   
@@ -73,13 +76,17 @@ if(FALSE){
   
   ### Compute steady states. This can be run using multiple CPUs if foreach set up
   nandonets <- ComputeSteadyState(nandonets)
-  
+
   ### Compute hitting probabilities. This can be run using multiple CPUs if foreach set up
   nandonets <- ComputeHittingProbability(nandonets)  #acceptable speed... 20 30 min?
   
   ### It is now possible to check where you would end up if you start from steady state
   hpss <- ComputeHittingProbabilityFromSS(nandonets)
-  PlotTopProbabilityMatrix(hpss, min.pmean = 1e-2)
+  PlotTopProbabilityMatrix(hpss, min.pmean = 1e-2)  #TODO exclude genes, ss
+  #ComputeHittingProbabilityFromSS(nandonets@nets[[1]])
+  
+  saveRDS(nandonets, "/corgi/websites/tcellnet/finalout.johan/nandonets.rds")
+  
   
   ### Plot top genes in steady state
   ss <- SteadyStateMatrix(nandonets)

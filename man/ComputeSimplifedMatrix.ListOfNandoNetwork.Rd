@@ -4,7 +4,7 @@
 \alias{ComputeSimplifedMatrix.ListOfNandoNetwork}
 \title{TODO just cannot make this one work. not clue why...}
 \usage{
-ComputeSimplifedMatrix.ListOfNandoNetwork(nandonets, keep_genes)
+\method{ComputeSimplifedMatrix}{ListOfNandoNetwork}(nandonets, keep_genes)
 }
 \arguments{
 \item{nandonets}{ListOfNandoNetwork}
