@@ -1,3 +1,6 @@
+library(RSQLite)
+library(cowplot)
+
 
 if(FALSE){
   #To run this app
@@ -45,8 +48,6 @@ PlotHittingProbabilityForGeneAsMatrixH5 <- function(genename, p_cutoff=0.1, use_
 #plot_hp_for_gene_asmatrix("BCL6")
 
 
-library(RSQLite)
-library(cowplot)
 
 
 
@@ -213,9 +214,9 @@ server <- function(input, output, session) {
   updateSelectizeInput(session, 'network_gene', choices = available_tf_in_ss, server = TRUE)
 
   
-  observeEvent(input$network_useclustering, {
+  observeEvent(input$shapreg_useclustering, {
     print("update ct1 ct2")
-    use_clustering <- input$network_useclustering
+    use_clustering <- input$shapreg_useclustering
     clusters_in_clustering <- available_clusters[[use_clustering]]
     updateSelectizeInput(session, 'shapreg_ct1', choices = clusters_in_clustering, server = TRUE)
     updateSelectizeInput(session, 'shapreg_ct2', choices = clusters_in_clustering, server = TRUE)
