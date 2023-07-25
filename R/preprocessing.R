@@ -262,7 +262,9 @@ SummarizeShapByCluster <- function(nando_dir, shap_dir, list_files_to_process, s
 }
 
 
-
+ReadNandoClustering <- function(nando_dir){
+  read.csv(file.path(nando_dir,"clusterings.csv"), row.names = "X")
+}
 
 
 #' Compute summarized SHAP values for a number of clusters.
@@ -281,8 +283,8 @@ SummarizeShapByClusterParallel <- function(nando_dir){
   shap_dir <- file.path(nando_dir, "shap")
 
   #Read list of clusterings  
-  summarize_shap_for_cluster <- read.csv(file.path(nando_dir,"clusterings.csv"), row.names = "X")
-
+  summarize_shap_for_cluster <- ReadNandoClustering()
+  
   #Which files are there to process?
   list_shap_files <- list.files(shap_dir)
   list_shap_files <- list_shap_files[str_starts(list_shap_files, "shap ")]
@@ -1184,11 +1186,12 @@ ExportTransitionMatrixCSV <- function(tmat, fname){
 }
 
 
-#' Return what type of gene each of them is
+#' Get what type each gene is
 #' 
 #' @param net A NandoNetwork
 #' @return A data.frame with two columns, gene and category
-GeneCategoriesDF <- function(net){
+#' @export
+GeneCategories.NandoNetwork <- function(net){
   list_upstream_tf <- setdiff(net@list_tfs,net@list_irreducible)
   data.frame(
     gene=c(
@@ -1202,6 +1205,23 @@ GeneCategoriesDF <- function(net){
       rep("NonTF",length(net@list_nontfs))
     )
   )
+}
+
+
+#' Get what type each gene is
+#' 
+#' @param net A NandoNetwork
+#' @return A data.frame with one column per network
+#' @export
+GeneCategories.ListOfNandoNetwork <- function(nandonets){
+  alldf <- list()
+  for(i in 1:length(nandonets@nets)){
+    onedf <- GeneCategories.NandoNetwork(nandonets@nets[[i]])
+    onedf$net <- names(nandonets@nets)[i]
+    alldf[[i]] <- onedf
+  }
+  alldf <- do.call("rbind", alldf)
+  reshape2::acast(alldf, gene~net, value.var="category")  
 }
 
 

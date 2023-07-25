@@ -102,7 +102,7 @@ if(FALSE){
   ### Save the network 
   ExportTransitionMatrixCSV(ComputeSimplifiedMatrix(net, keep_genes), "/corgi/websites/tcellnet/graphs/top20simplified.csv")
   ExportTransitionMatrixCSV(TransitionMatrix(net), "/corgi/websites/tcellnet/graphs/fullnetwork.edges.csv")
-  write.csv(GeneCategoriesDF(net),"/corgi/websites/tcellnet/graphs/fullnetwork.genecat.csv", row.names = FALSE)
+  write.csv(GeneCategories.NandoNetwork(net),"/corgi/websites/tcellnet/graphs/fullnetwork.genecat.csv", row.names = FALSE)
 
   ### Comparison of two steady states. If it changes, which edges does the probability flow over?
   flow <- MeltSparsematrix(ComputeSteadyStateChangeEdgeflow(nandonets@nets[[1]],nandonets@nets[[2]]))

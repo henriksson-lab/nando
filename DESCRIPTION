@@ -1,14 +1,14 @@
 Package: Nando
 Version: 1.0.5.14
 Type: Package
-Title: Inferring regulomes from multi-modal single-cell genomics data
-Authors@R: person(given = "Jonas Simon",
-               family = "Fleck",
+Title: Inferring and interpreting regulomes from multi-modal single-cell genomics data
+Authors@R: person(given = "Johan",
+               family = "Henriksson",
                role = c("aut", "cre"),
-               email = "jonas.fleck@bsse.ethz.ch",
-               comment = c(ORCID = "0000-0002-4686-7254"))
-Maintainer: Jonas Simon Fleck <jonas.fleck@bsse.ethz.ch>
-Description: Pando jointly uses scRNA-seq and scATAC-seq measurements to infer regulatory relationships between TF-binding site pairs and target genes. 
+               email = "johan.henriksson@umu.se",
+               comment = c(ORCID = "0000-0002-7745-2844"))
+Maintainer: Johan Henriksson <johan.henriksson@umu.se>
+Description: Nando extracts cell specific interpretations of GRNs
 License: MIT
 Encoding: UTF-8
 LazyData: true
@@ -22,30 +22,18 @@ Imports:
     tidyverse (>= 2.0.0),
     Seurat (>= 4.0.0),
     Signac,
+    markovchain,
     Matrix (>= 1.5-0),
     MatrixGenerics (>= 1.10.0),
     ggplot2,
-    IRanges (>= 2.32.0),
     GenomicRanges,
-    motifmatchr,
-    glmnetUtils,
-    bayestestR,
-    ggpointdensity,
-    ggraph,
-    tidygraph,
-    pals,
     patchwork,
-    TFBSTools,
     foreach,
-    sparseMatrixStats (>= 1.10.0),
-    irlba,
-    uwot,
-    grr
+    doParallel,
+    stringr,
+    sparseMatrixStats (>= 1.10.0)
 Suggests: 
     rmarkdown,
-    testthat,
-    reticulate,
-    xgboost,
-    brms
+    testthat
 Remotes: 
-    github::immunogenomics/presto
+    github::henriksson-lab/nando

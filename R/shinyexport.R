@@ -79,6 +79,8 @@ ExportShinyNando.SteadyStates <- function(nandor_dir, nandonets){
 ExportShinyNando <- function(nandor_dir, nandonets){
   ExportShinyNando.HP(nandor_dir, nandonets)
   ExportShinyNando.SteadyStates(nandor_dir, nandonets)
+  ExportShapPerRegionSqlite(nando_dir)
+  ExportGeneCategories(nando_dir, nandonets)
 }
 
 
@@ -125,3 +127,105 @@ if(FALSE){
   
 
 }
+
+
+#' Store SHAPs per network, gene and region
+#' 
+#' @import RSQLite
+#' @return Nothing
+#' 
+ExportShapPerRegionSqlite <- function(nando_dir){
+  sqlite_file_ct_shapregs <- file.path(nando_dir, "shapregs.sqlite")
+  
+  ##Store in an sqlite file such that we can load only one gene of interest in the future
+  if(file.exists(sqlite_file_ct_shapregs)){
+    file.remove(sqlite_file_ct_shapregs)
+  }
+  
+  con <- dbConnect(RSQLite::SQLite(), dbname = sqlite_file_ct_shapregs)
+  dir_shapregsummary <- file.path(nando_dir,"summarizedshapregs")
+  for(f in list.files(dir_shapsummary)){
+    if(str_ends(f,"RDS")){
+      print(f)
+      #Read some genes
+      shapregs <- readRDS(file.path(dir_shapregsummary,f))
+      
+      #Normalize to get p-values
+      shapregs <- merge(shapregs, sqldf::sqldf("select category, gene, sum(gain) as sumgain from shapregs group by gene,category"))
+      shapregs$p <- shapregs$gain/shapregs$sumgain
+      #shapregs <- shapregs[,c("tf","category","gene","p","region")]
+      
+      #Expand coordinates into separate variables
+      pos <- as.data.frame(str_split_fixed(shapregs$region,"_",3))
+      colnames(pos) <- c("chrom","start","end")
+      pos$start <- as.integer(pos$start)
+      pos$end <- as.integer(pos$end)
+      shapregs <- cbind(shapregs[,c("tf","p","category","gene")], pos)
+      
+      #Save in SQL
+      shapregs <- shapregs[,c("tf","category","gene","p","chrom","start","end")]
+      dbWriteTable(con, "shapregs", as.data.frame(shapregs), append=TRUE)
+    }
+  }
+  dbExecute(con, "CREATE INDEX shapregs_gene ON shapregs (gene);")
+  
+  #Store list of genes for fast query later  
+  sql_result <- dbSendQuery(con, "SELECT distinct gene FROM shapregs")
+  genelist <- dbFetch(sql_result)
+  dbClearResult(sql_result)
+  dbWriteTable(con, "genelist", genelist)
+  
+  dbDisconnect(con)
+}
+
+
+#' Store category of each gene
+#' @param nando_dir Nando directory
+#' @param nandonets ListOfNandoNetwork
+#' @return Nothing
+ExportGeneCategories <- function(nando_dir, nandonets){
+  df <- GeneCategoriesDF.ListOfNandoNetwork(nandonets)
+  saveRDS(df, file.path(nando_dir,"cellcategory.RDS"))
+}
+
+#' Read category of each gene
+#' @param nando_dir Nando directory
+#' @return Data frame with categories per net
+ImportGeneCategories <- function(nando_dir){
+  readRDS(file.path(nando_dir,"cellcategory.RDS"))
+}
+
+
+
+
+
+
+
+
+
+#' Get all the upstream SHAP info for one gene
+ImportShapregsForGene <- function(nando_dir, genename){
+  sqlite_file_ct_shapregs <- file.path(nando_dir, "shapregs.sqlite")
+  con <- dbConnect(RSQLite::SQLite(), dbname = sqlite_file_ct_shapregs)
+  iris_result <- dbSendQuery(con, "SELECT * FROM shapregs where [gene] = ?")
+  dbBind(iris_result, list(genename))
+  shapregs <- dbFetch(iris_result)
+  dbClearResult(iris_result)
+  dbDisconnect(con)
+  shapregs
+}
+
+#' Get which genes are in this database
+ImportShapregsGenelist <- function(nando_dir){
+  sqlite_file_ct_shapregs <- file.path(nando_dir, "shapregs.sqlite")
+  con <- dbConnect(RSQLite::SQLite(), dbname = sqlite_file_ct_shapregs)
+  sql_result <- dbSendQuery(con, "SELECT * FROM genelist")
+  genelist <- dbFetch(sql_result)
+  dbClearResult(sql_result)
+  dbDisconnect(con)
+  genelist$gene
+}
+
+
+
+
