@@ -204,6 +204,8 @@ if(FALSE){
 ################### Shiny Nando ################################################
 ################################################################################
 
+  #This exports everything such that it can be browsed with Shiny.
+  #HP and SS must have been computed for this
   ExportShinyNando(nandonets)
 
 

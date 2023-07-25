@@ -80,7 +80,7 @@ SteadyStateMatrix <- function(nandonets){
 #' @import ggplot2
 #' @export
 #' 
-PlotTopProbabilityMatrix <- function(probs, min.pmean=1e-2, dolog=TRUE){
+PlotTopProbabilityMatrix <- function(probs, min.pmean=1e-2, dolog=TRUE, include_tf=c()){
   #Order genes by average probability
   pmean <- colMeans(probs)
   newo <- order(pmean,decreasing = FALSE)
@@ -88,10 +88,8 @@ PlotTopProbabilityMatrix <- function(probs, min.pmean=1e-2, dolog=TRUE){
   pmean <- pmean[newo]
   
   #Filter genes
-  probs <- probs[,pmean>min.pmean,drop=FALSE]
+  probs <- probs[,pmean>min.pmean | colnames(probs) %in% include_tf,drop=FALSE]
 
-  #
-  
   #Produce plot  
   long_probs <- reshape2::melt(probs)
   colnames(long_probs) <- c("cluster","gene","p")

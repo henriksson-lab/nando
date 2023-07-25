@@ -28,6 +28,7 @@ Imports:
     ggplot2,
     GenomicRanges,
     patchwork,
+    cowplot,
     foreach,
     doParallel,
     stringr,
