@@ -19,11 +19,15 @@ setClassUnion("sparseMatrixOrNULL",members=c("dgCMatrix", "NULL"))
 #' An S4 class to represent a list of networks
 #'
 #' @slot nets All networks
+#' @slot replicate_type Type of networks (multiple replicates per type)
+#' @slot replicate_id ID of replicate source i.e. donor ID
 #' 
 #' @export
 #' 
 ListOfNandoNetwork <- setClass("ListOfNandoNetwork", slots=list(
-  nets="list"
+  nets="list",
+  replicate_type="character",
+  replicate_id="character"
   )
 )
 

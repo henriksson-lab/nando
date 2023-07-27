@@ -12,5 +12,9 @@ An S4 class to represent a list of networks
 
 \describe{
 \item{\code{nets}}{All networks}
+
+\item{\code{replicate_type}}{Type of networks (multiple replicates per type)}
+
+\item{\code{replicate_id}}{ID of replicate source i.e. donor ID}
 }}
 

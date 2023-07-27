@@ -3,6 +3,8 @@ library(Matrix)
 library(stringr)
 library(doParallel)
 library(foreach)
+library(topGO)
+library(dplyr)
 
 ################################################################################
 ################### Running of Pando ###########################################
@@ -1229,4 +1231,343 @@ GeneCategories.ListOfNandoNetwork <- function(nandonets){
 ################################################################################
 ################### GO analysis ################################################
 ################################################################################
+
+
+
+
+
+
+
+
+
+
+# 
+# ##############################
+# ## Get HP for each gene going TO a tf
+# collect_hp_over_donors_TO <- function(this_net, the_tf){
+#   collected_hp <- NULL
+#   for(netname in names(tmat.hp.perdonor)[str_ends(names(tmat.hp.perdonor),fixed(this_net))]){
+#     collected_hp <- rbind(
+#       collected_hp,
+#       data.frame(
+#         netname=netname,
+#         gene=rownames(tmat.hp.perdonor[[netname]]),
+#         p=tmat.hp.perdonor[[netname]][,the_tf]
+#       )
+#     )
+#   }
+#   collected_hp
+# }
+
+#collect_hp_over_donors_TO("ALL","JUNB")
+
+#' Get hitting probabilities for all genes to a particular gene
+#' 
+#' @param nandonets ListOfNandoNetwork
+#' @param to_gene To which gene
+#' @export
+#' 
+GetHittingProbabilityTo.ListOfNandoNetwork <- function(nandonets, to_gene){
+  collected <- list()
+  for(netname in names(nandonets@nets)){
+    hp <- nandonets@nets[[netname]]@hp
+    onedf <- data.frame(
+      netname=netname,
+      gene=rownames(hp),
+      p=hp[,to_gene]
+    )
+    collected[[netname]] <- onedf
+  }
+  collected <- do.call("rbind", collected)
+  rownames(collected) <- NULL  
+  collected
+}
+#GetHittingProbabilityTo.ListOfNandoNetwork(nandonets,"GATA3")
+
+
+#' Set the types of replicate networks. Needed for some statistical testing.
+#' Either fit networks for each biological replicate, or perform random
+#' subsetting for at least a technical variance analysis.
+#' The arguments separate the original network name into (replicate_name, replicate_id)
+#' 
+#' @param nandonets ListOfNandoNetwork
+#' @param replicate_type Name of replicate type, same length as number of networks
+#' @param replicate_id ID of the source i.e. donor ID
+#' 
+#' @export
+#' 
+SetNandoNetworkReplicateTypes <- function(nandonets, replicate_type, replicate_id){
+  if(length(replicate_type)==length(nandonets@nets) && length(replicate_id)==length(nandonets@nets)){
+    nandonets@replicate_type <- replicate_type
+    nandonets@replicate_id <- replicate_id
+  } else {
+    stop("Length does not match the number of nets")
+  }
+  nandonets
+}
+
+
+
+##############################
+## Compare hp for genes between two networks and return difference scores for each
+compare_hp_over_networks <- function(hitp_from_this, hitp_from_global){
+  m <- merge(hitp_from_this[,c("gene","p")], hitp_from_global[,c("gene","p")], by.x=c("gene"), by.y=c("gene"))
+  m$diff <- abs(m$p.x-m$p.y)
+  m <- sqldf("select gene, avg(diff) as a, count(diff) as c from m group by gene")
+  data.frame(
+    gene=m$gene,
+    score=m$a  #/m$c 
+  )
+}
+
+#' Scores differences between networks. SetNandoNetworkReplicateTypes must have
+#' been called first to set up network type and replicate names.
+#' Networks of type "" will be excluded.
+#'
+#' @param nanonets ListOfNandoNetwork
+#' @param probs Data.frame having columns (netname, gene, p)
+#' @param reference_network Name of network type to compare all other network types to
+#'
+#' @return Data.frame with columns (gene, score)
+#' 
+#' @export
+#'
+ScoreProbabilityDifferences <- function(nandonets, probs, reference_network){
+  
+  if(is.null(nandonets@replicate_type)){
+    stop("Must first call SetNandoNetworkReplicateTypes")
+  }
+  
+  # remove "" network
+  keepnets <- nandonets@replicate_type!=""
+  nandonets@nets <- nandonets@nets[keepnets]
+  nandonets@replicate_type <- nandonets@replicate_type[keepnets]
+  nandonets@replicate_id <- nandonets@replicate_id[keepnets]
+  
+  # map network to reps
+  map_network_rep <- data.frame(
+    netname=names(nandonets@nets),
+    replicate_type = nandonets@replicate_type,
+    replicate_id = nandonets@replicate_id
+  )
+  map_network_rep <- map_network_rep[order(map_network_rep$replicate_type, map_network_rep$replicate_id),]
+  
+  # probs <- merge(probs, data.frame(
+  #   netname=names(nandonets@nets),
+  #   replicate_type = nandonets@replicate_type,
+  #   replicate_id = nandonets@replicate_id
+  # ))
+  
+  # Figure out what to compare (all vs reference)
+  tocompare <- unique(map_network_rep$replicate_type)
+  if(!(reference_network %in% tocompare)){
+    print(map_network_rep)
+    stop(paste("Reference", reference_network,"is not among the networks"))
+  }
+  tocompare <- setdiff(tocompare, reference_network)
+
+  # Perform comparison. Faster if matrix format to avoid any merges
+  probs_mat <- acast(probs, gene ~ netname, value.var = "p")
+  collected <- list()
+  comp_ref  <- map_network_rep$netname[map_network_rep$replicate_type==reference_network]
+  comp_ref_val <- probs_mat[,comp_ref]
+  for(netname in tocompare){
+    
+    comp_this <- map_network_rep$netname[map_network_rep$replicate_type==netname]
+    comp_this_val <- probs_mat[,comp_this]
+    
+    if(ncol(comp_this_val)!=ncol(comp_ref_val)){
+      stop(paste("Number of replicates do not match up",netname,"vs", reference_network))
+    }
+    
+    diff <- comp_this_val-comp_ref_val
+    scores <- rowMeans(abs(diff))
+    
+    collected[[netname]] <- data.frame(
+      netname=netname,
+      gene=names(scores),
+      score=scores
+    )
+  }
+  collected <- do.call("rbind", collected)
+  rownames(collected) <- NULL  
+  collected
+}
+
+
+
+
+#' Perform network-informed GO analysis. Requires global variables properly set up before
+#'
+#' @param allscores Data.frame with columns (netname, gene, score)
+#' @param num_significant How many top genes to include for GO analysis
+#' @param mapping Which gene database to use
+#' 
+#' @import topGO 
+ComputeGeneScoreGO <- function(allscores,GO.type="MF", num_significant=1000, mapping="org.Hs.eg.db"){   
+  
+  #Iterate over all networks
+  netnames <- unique(allscores$netname)
+  collected <- list()
+  for(netname in netnames){
+    #Get scores for this network
+    print(netname)
+    scores <- allscores[allscores$netname==netname,]
+
+    #Rank scores and pull most significant genes
+    scores$score <- abs(scores$score)
+    scores <- scores[order(scores$score, decreasing = TRUE),]
+    scores$significant <- FALSE
+    scores$significant[1:num_significant] <- TRUE
+    
+    #Perform GO test
+    if(sum(scores$significant)>0){
+      alg <- factor(as.integer(scores$significant))
+      names(alg) <- scores$gene
+      
+      tgd <- new("topGOdata",
+                 ontology = GO.type,
+                 allGenes = alg,
+                 nodeSize = 5,
+                 annot = topGO::annFUN.org,
+                 mapping = mapping,
+                 ID = "symbol" )
+      
+      resultTopGO.classic.fisher <- runTest(tgd,
+                                            cutOff=1,
+                                            algorithm = "classic",
+                                            statistic = "fisher")
+      tab <- GenTable(tgd, 
+                      padj = resultTopGO.classic.fisher,
+                      topNodes = length(resultTopGO.classic.fisher@score))
+      tab$pathway <- sprintf("%s: %s",tab$GO.ID,tab$Term)
+      tab$netname <- netname
+      tab$padj <- as.double(tab$padj) #Odd thing that needs fixing
+      
+      
+      collected[[netname]] <- tab
+    } else {
+      print(paste("no significant genes for",netname))
+    }    
+  }
+  collected <- do.call("rbind", collected)
+  rownames(collected) <- NULL  
+  collected
+}
+
+
+#' Plot the result of network-informed GSEA as a heatmap, celltype vs GO term
+#' 
+#' @param go_result Data.frame with columns (netname, pathway, padj, log_padj)
+#' @import ComplexHeatmap
+#' @import dplyr
+#' @return A gglot object
+#' @export
+PlotGeneGOvsNetworks <- function(go_result, padj_cutoff=0.1){
+  toplot <- go_result[,c("pathway","padj","netname")]
+  toplot$log_padj <- log10(toplot$padj)
+  toplot[toplot$padj < padj_cutoff,] %>% group_by(netname) %>% slice_head(n = 3) -> include_pathway
+  include_pathway <- unique(include_pathway$pathway)
+  
+  ggplot(toplot[toplot$pathway %in% include_pathway,], aes(netname, pathway, fill=log_padj)) + 
+    geom_tile() + 
+    scale_fill_gradient(low = "#FF0000",high = "#FFFFFF") + 
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+}
+
+#' Compute function of gene using GO over hitting probablities, i.e, which genes are regulated
+#' by this gene?
+#' 
+#' @param nandonet ListOfNandoNetwork
+#' @param gene Gene to consider
+#' @param reference_network The null distribution; one sensible choice is a network consisting of all cells
+#' @return Data.frame to be plotted with PlotGeneGO
+#' 
+#' @export
+#' 
+ComputeGOFromHP <- function(nandonets, gene, reference_network="ALL"){
+  probs <- GetHittingProbabilityTo.ListOfNandoNetwork(nandonets,gene)
+  diffscores <- ScoreProbabilityDifferences(nandonets, probs, reference_network = reference_network)
+  go_result <- ComputeGeneScoreGO(diffscores)
+  go_result
+}
+
+
+if(FALSE){
+  probs <- GetHittingProbabilityTo.ListOfNandoNetwork(nandonets,"GATA3")
+  diffscores <- ScoreProbabilityDifferences(nandonets, probs, reference_network = "ALL")
+  #allscores <- diffscores[diffscores$netname %in% c("NK cells","T cells, CD4+, memory TREG"),]
+  go_result <- ComputeGeneScoreGO(diffscores)
+  PlotGeneGOvsNetworks(go_result)
+  
+  #Shorter
+  go_result <- ComputeGOFromHP(nandonets,"GATA3")
+  PlotGeneGOvsNetworks(go_result)
+}
+
+
+# 
+# 
+# #For testing one TF --- GO
+# if(FALSE){
+#   this_net <- "NK cells"
+#   the_tf <- "JUNB"
+#   the_tf <- "RBPJ"
+#   the_tf <- "RUNX1"
+#   fgseaRes <- run_net_fgsea_donorreps("NK cells","RBPJ")
+#   
+#   topPathwaysUp <- fgseaRes[ES > 0][head(order(pval), n=10), pathway]
+#   topPathwaysDown <- fgseaRes[ES < 0][head(order(pval), n=10), pathway]
+#   topPathways <- c(topPathwaysUp, rev(topPathwaysDown))
+#   plotGseaTable(pathways[topPathways], hitp_score, fgseaRes, 
+#                 gseaParam=0.5)
+# }
+
+
+# 
+# 
+# ####################
+# #Run network-informed GSEA for all networks, for one TF
+# run_net_GO_all <- function(the_tf){
+#   
+#   list_ct <- unique(str_split_fixed(names(tmat.hp.perdonor)," ",2)[,2])
+#   
+#   all_fgseaRes <- foreach(cur_ct = setdiff(list_ct,"ALL"), .combine = "rbind",  .verbose = F) %do% {
+#     fgseaRes <- run_net_GO_donorreps_TOPGO(cur_ct,the_tf)
+#     fgseaRes$ct <- cur_ct
+#     fgseaRes
+#   }
+#   
+#   all_fgseaRes$padj <- as.double(all_fgseaRes$padj)
+#   all_fgseaRes <- all_fgseaRes[order(all_fgseaRes$padj),]
+#   all_fgseaRes$log_padj <- -log10(all_fgseaRes$padj)
+#   
+#   all_fgseaRes
+# }
+
+# 
+# ####################
+# #Plot the result of network-informed GSEA as a heatmap, celltype vs GO term
+# plot_net_GO_all_heatmap <- function(all_fgseaRes, column_title=""){
+#   toplot <- all_fgseaRes[,c("pathway","padj","log_padj","ct")]
+#   toplot[toplot$padj < 0.1,] %>% group_by(ct) %>% slice_head(n = 3) -> include_pathway
+#   include_pathway <- unique(include_pathway$pathway)
+#   
+#   toplot_mat <- acast(toplot[toplot$pathway %in% include_pathway,], pathway~ct, value.var = "log_padj", fill=0) #### 0 is highly questionable
+#   ht_list <- ComplexHeatmap::Heatmap(toplot_mat, column_names_rot = 45, column_title = column_title)
+#   draw(ht_list, padding = unit(c(2, 40, 2, 100), "mm"))
+# }
+# 
+
+
+
+# if(FALSE){
+#   gsea_res_JUNB <- run_net_GO_all("JUNB")
+#   plot_net_GO_all_heatmap(gsea_res_JUNB, "JUNB")
+# 
+# }
+
+
+
+
 

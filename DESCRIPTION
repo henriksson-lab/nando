@@ -20,6 +20,7 @@ Depends:
     R (>= 4.0.0)
 Imports: 
     tidyverse (>= 2.0.0),
+    dplyr,
     Seurat (>= 4.0.0),
     Signac,
     markovchain,
