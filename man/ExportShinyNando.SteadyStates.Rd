@@ -4,7 +4,7 @@
 \alias{ExportShinyNando.SteadyStates}
 \title{Export SS data available to ShinyNando}
 \usage{
-ExportShinyNando.SteadyStates(nandor_dir, nandonets)
+ExportShinyNando.SteadyStates(nando_dir, nandonets)
 }
 \arguments{
 \item{nandonets}{A ListOfNandoNetwork}

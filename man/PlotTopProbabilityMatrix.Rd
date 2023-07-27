@@ -4,7 +4,12 @@
 \alias{PlotTopProbabilityMatrix}
 \title{Plot a matrix consisting of probabilities}
 \usage{
-PlotTopProbabilityMatrix(probs, min.pmean = 0.01, dolog = TRUE)
+PlotTopProbabilityMatrix(
+  probs,
+  min.pmean = 0.01,
+  dolog = TRUE,
+  include_tf = c()
+)
 }
 \arguments{
 \item{probs}{A matrix of probabilities; can be sparse or dense}
