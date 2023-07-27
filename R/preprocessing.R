@@ -1322,7 +1322,7 @@ ScoreProbabilityDifferences <- function(nandonets, probs, reference_network){
   tocompare <- setdiff(tocompare, reference_network)
 
   # Perform comparison. Faster if matrix format to avoid any merges
-  probs_mat <- acast(probs, gene ~ netname, value.var = "p")
+  probs_mat <- reshape2::acast(probs, gene ~ netname, value.var = "p")
   collected <- list()
   comp_ref  <- map_network_rep$netname[map_network_rep$replicate_type==reference_network]
   comp_ref_val <- probs_mat[,comp_ref]
