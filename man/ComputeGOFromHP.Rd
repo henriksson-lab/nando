@@ -5,12 +5,23 @@
 \title{Compute function of gene using GO over hitting probablities, i.e, which genes are regulated
 by this gene?}
 \usage{
-ComputeGOFromHP(nandonets, gene, reference_network = "ALL")
+ComputeGOFromHP(
+  nandonets,
+  gene,
+  reference_network,
+  GO.type = c("MF", "BP", "CC"),
+  num_significant = 1000,
+  mapping = "org.Hs.eg.db"
+)
 }
 \arguments{
 \item{gene}{Gene to consider}
 
 \item{reference_network}{The null distribution; one sensible choice is a network consisting of all cells}
+
+\item{num_significant}{How many top genes to include for GO analysis}
+
+\item{mapping}{Which gene database to use}
 
 \item{nandonet}{ListOfNandoNetwork}
 }

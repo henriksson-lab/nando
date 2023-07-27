@@ -10,7 +10,7 @@ PlotGeneGOvsNetworks(go_result, padj_cutoff = 0.1)
 \item{go_result}{Data.frame with columns (netname, pathway, padj, log_padj)}
 }
 \value{
-A gglot object
+A gglot2 object
 }
 \description{
 Plot the result of network-informed GSEA as a heatmap, celltype vs GO term
