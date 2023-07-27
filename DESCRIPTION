@@ -23,6 +23,7 @@ Imports:
     Seurat (>= 4.0.0),
     Signac,
     markovchain,
+    MatrixExtra,
     Matrix (>= 1.5-0),
     MatrixGenerics (>= 1.10.0),
     ggplot2,
@@ -32,6 +33,7 @@ Imports:
     foreach,
     doParallel,
     stringr,
+    hdf5r,
     sparseMatrixStats (>= 1.10.0)
 Suggests: 
     rmarkdown,
