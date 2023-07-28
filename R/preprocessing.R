@@ -877,24 +877,58 @@ GetWalktrapEntropy <- function(walktraps, keep_genes=NULL, keep_steps=NULL){
 #' @return Matrix of similarity scores
 #' 
 #' @export
-ComputeNandoNetworkSimilarity <- function(nandonets, method=c("jaccard","ssi")){
+ComputeNandoNetworkSimilarity <- function(nandonets, method=c("jaccard","ssi"), datarep=c("mc","ss","hp","hpss")){
   method <- match.arg(method)
-
-  #Obtain all network edges. Long format
-  print("Gathering all networks in comparable fromat")
-  tmat_long <- foreach (x = names(nandonets@nets), .combine=rbind, .verbose = F) %do% {
-    print(x)
-    out <- MeltSparsematrix(TransitionMatrix(nandonets@nets[[x]]))
-    out$net <- x
-    data.frame(
-      net=out$net,
-      p=out$value,
-      edge=paste(out$row,out$col)
-    )
+  datarep <- match.arg(datarep)
+  
+  ###Gather data into matrix, networks as columns
+  
+  if(datarep=="mc"){
+    print("Gathering all markovchains")
+    tmat_long <- foreach (x = names(nandonets@nets), .combine=rbind, .verbose = F) %do% {
+      print(x)
+      out <- MeltSparsematrix(TransitionMatrix(nandonets@nets[[x]]))
+      out$net <- x
+      data.frame(
+        net=out$net,
+        p=out$value,
+        edge=paste(out$row,out$col)
+      )
+    }
+    tocompare <- reshape2::acast(tmat_long, edge~net, value.var="p", fill=0)
   }
-  tocompare <- reshape2::acast(tmat_long, edge~net, value.var="p", fill=0)
   
+  if(datarep=="hp"){
+    print("Gathering all HPs")
+    hp <- nandonets@nets[[1]]@hp
+    tocompare <- matrix(nrow=nrow(hp)*ncol(hp), ncol=length(nandonets@nets))
+    colnames(tocompare) <- names(nandonets@nets)
+    for(i in 1:length(nandonets@nets)){
+      print(names(nandonets@nets)[i])
+      tocompare[,i] <- as.double(nandonets@nets[[i]]@hp)
+    }
+  }
   
+  if(datarep=="ss"){
+    tocompare <- t(SteadyStateMatrix(nandonets))
+  }
+  
+  if(datarep=="hpss"){
+    tocompare <- t(ComputeHittingProbabilityFromSS(nandonets))
+  }
+  
+  ComputeProbabilitySimilarity(tocompare)
+}
+
+#' Comparison of distributions. For the definition of Jaccard and SSI, see
+#' documentation of ComputeNandoNetworkSimilarity
+#' 
+#' @param tocompare A matrix of probabilities, with each sample being a column
+#' @param method The similarity metric to apply
+#' @return Matrix of similarity scores
+#' 
+#' @export
+ComputeProbabilitySimilarity <- function(tocompare, method=c("jaccard","ssi")){
   #Allocate output matrix
   print("Doing comparisons")
   numnet <- length(nandonets@nets)

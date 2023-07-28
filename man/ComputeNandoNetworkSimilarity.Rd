@@ -4,7 +4,11 @@
 \alias{ComputeNandoNetworkSimilarity}
 \title{Compute network similarities}
 \usage{
-ComputeNandoNetworkSimilarity(nandonets, method = c("jaccard", "ssi"))
+ComputeNandoNetworkSimilarity(
+  nandonets,
+  method = c("jaccard", "ssi"),
+  datarep = c("mc", "ss", "hp", "hpss")
+)
 }
 \arguments{
 \item{nandonets}{ListOfNandoNetwork}
