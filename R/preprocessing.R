@@ -264,6 +264,9 @@ SummarizeShapByCluster <- function(nando_dir, shap_dir, list_files_to_process, s
 }
 
 
+#' Read what clusterings were set
+#' 
+#' @export
 ReadNandoClustering <- function(nando_dir){
   read.csv(file.path(nando_dir,"clusterings.csv"), row.names = "X")
 }
@@ -400,6 +403,7 @@ TransitionMatrix.data.frame <- function(onegrn, subsetGene=NULL, subsetTF=NULL, 
 #' @import Matrix
 #' @return A markovchain object
 #' 
+#' @export
 transitionmatrix_to_mc <- function(mat){
   new("markovchain",transitionMatrix=as.matrix(mat),
                states=colnames(mat),
@@ -755,6 +759,7 @@ fast_entropy_sparsematrix <- function(mat){
 #' @param gdata A Seurat object
 #' @return A Seurat object after PCA, UMAP and leiden clustering
 #' 
+#' @export
 BasicSeuratProcessingGdata <- function(gdata){
   #gdata <- Seurat::NormalizeData(object = gdata)
   gdata <- Seurat::FindVariableFeatures(gdata, selection.method="disp", nfeatures=nrow(gdata))
@@ -1064,6 +1069,7 @@ HittingProbabilitiesToSeurat <- function(nandonets, keep_genes_from=NULL, keep_g
 #' 
 #' @param netA,netB Two NandoNetworks to be compared
 #' @return Matrix, from each gene showing how much flowed to another
+#' @export
 #' 
 ComputeSteadyStateChangeEdgeflow <- function(netA, netB){
   #netA <- nandonets@nets[[1]]
@@ -1101,6 +1107,7 @@ ComputeSteadyStateChangeEdgeflow <- function(netA, netB){
 
 
 #' Melt a sparse matrix to long format
+#' @export
 MeltSparsematrix <- function(mat){
   mat <- as(mat, "TsparseMatrix")
   data.frame(
@@ -1206,6 +1213,7 @@ ComputeSimplifiedMatrix.ListOfNandoNetwork <- function(nandonets, keep_genes){
 #' 
 #' @param tmat A transition matrix
 #' @param fname Name of a csv file to write to
+#' @export
 #' 
 ExportTransitionMatrixCSV <- function(tmat, fname){
   long_tmat <- MeltSparsematrix(tmat)
@@ -1393,6 +1401,7 @@ ScoreProbabilityDifferences <- function(nandonets, probs, reference_network){
 #' @param mapping Which gene database to use
 #' 
 #' @import topGO 
+#' @export
 ComputeGeneScoreGO <- function(allscores,GO.type="MF", num_significant=1000, mapping="org.Hs.eg.db"){   
   
   #Iterate over all networks

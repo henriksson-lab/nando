@@ -12,6 +12,7 @@
 #' Store list of matrices 
 #' 
 #' @return Nothing
+#' @export
 StoreProbabilityMatricesH5 <- function(fname, list_matrix){
   
   if(file.exists(fname)){
@@ -93,6 +94,7 @@ ImportShinyNando.SteadyStates <- function(nando_dir){
 #' 
 #' @param nandonets A ListOfNandoNetwork
 #' @return Nothing
+#' @export
 ImportShinyNando.HP.SS <- function(nando_dir){
   readRDS(file.path(nando_dir,"hpss.RDS"))
 }
@@ -130,6 +132,7 @@ ExportShinyNando <- function(nando_dir, nandonets){
 #' 
 #' @param fname Name of the file
 #' 
+#' @export
 PrepareProbabilityMatrixH5 <- function(fname){
 
   list_names <- rhdf5::h5read(fname,"listnets")
@@ -155,6 +158,7 @@ PrepareProbabilityMatrixH5 <- function(fname){
 
 
 #' Read probability matrices for one gene
+#' @export
 ReadProbabilityMatricesH5ForGene <- function(matrixfile, netnames, genename){  #this is hp, so gene from to all other genes?
 
   #matrixfile <- h5hp
@@ -313,6 +317,7 @@ ExportGeneCategories <- function(nando_dir, nandonets){
 #' Read category of each gene
 #' @param nando_dir Nando directory
 #' @return Data frame with categories per net
+#' @export
 ImportGeneCategories <- function(nando_dir){
   readRDS(file.path(nando_dir,"cellcategory.RDS"))
 }
@@ -329,6 +334,7 @@ ImportGeneCategories <- function(nando_dir){
 #' 
 #' 
 #' 
+#' @export
 ImportShapregsForGene <- function(nando_dir, genename){
   sqlite_file_ct_shapregs <- file.path(nando_dir, "shapregs.sqlite")
   con <- dbConnect(RSQLite::SQLite(), dbname = sqlite_file_ct_shapregs)
@@ -344,6 +350,7 @@ ImportShapregsForGene <- function(nando_dir, genename){
 #' 
 #' 
 #' 
+#' @export
 ImportShapregsGenelist <- function(nando_dir){
   sqlite_file_ct_shapregs <- file.path(nando_dir, "shapregs.sqlite")
   con <- dbConnect(RSQLite::SQLite(), dbname = sqlite_file_ct_shapregs)
@@ -360,6 +367,7 @@ ImportShapregsGenelist <- function(nando_dir){
 #' 
 #' 
 #' 
+#' @export
 ImportShapsForGene <- function(nando_dir, genename){
   sqlite_file_ct_shapregs <- file.path(nando_dir, "shaps.sqlite")
   con <- dbConnect(RSQLite::SQLite(), dbname = sqlite_file_ct_shapregs)
