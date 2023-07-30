@@ -189,12 +189,11 @@ SummarizeShapByCluster_summarizeClusterNoreg <- function(shap, for_category, one
 #' This function is not meant to be used directly; most users should rather use a wrapper
 #' that loops over all files
 #' 
+#' @param nando_dir The directory holding per-cluster SHAP scores
 #' @param shap_dir Directory with SHAP per cell
 #' @param list_files_to_process List of files to process
 #' @param task_id Process ID when multiprocessing, or 0
 #' @param summarize_shap_for_cluster Clusterings of cells
-#' 
-#' @export
 SummarizeShapByCluster <- function(nando_dir, shap_dir, list_files_to_process, summarize_shap_for_cluster, task_id){
   
   #Create place to store summaries
@@ -236,7 +235,7 @@ SummarizeShapByCluster <- function(nando_dir, shap_dir, list_files_to_process, s
     }
     all_shap[[curgene]] <- all_shap_for_gene
     all_shap_reg[[curgene]] <- all_shap_for_gene_reg
-    
+
   }
   
   ## Set up and create output directories
@@ -312,15 +311,134 @@ SummarizeShapByClusterParallel <- function(nando_dir){
   print(list_files_to_process)
   print("========================================")
   
-  ## Do the actual work
+  ## Summarize, based on clusters
   SummarizeShapByCluster(
     nando_dir, shap_dir, list_files_to_process, summarize_shap_for_cluster, task_id)
+
+  ## Summarize, based on cells
+  SummarizeShapByCell(
+    nando_dir, shap_dir, list_files_to_process, task_id)
   
   print("Finished summarizing shaps")
 }
 
 
 
+
+#' Compute summarized SHAP values for each TF in each cell.
+#' 
+#' This function is not meant to be used directly; most users
+#' should rather use a wrapper that loops over all files
+#' 
+#' @param nando_dir The directory holding per-cluster SHAP scores
+#' @param shap_dir Directory with SHAP per cell
+#' @param list_files_to_process List of files to process
+#' @param task_id Process ID when multiprocessing, or 0
+#' @return Nothing
+SummarizeShapByCell <- function(nando_dir, shap_dir, list_files_to_process, task_id){
+
+  dir_shapsummary_cell <- file.path(nando_dir,"summarizedshapcells")
+  
+  all_shap_cell <- list()
+  for(f in list_files_to_process){
+    
+    curgene <- str_remove(str_remove(f,"shap ")," .RDS")
+    print(curgene)
+    
+    shap <- readRDS(file.path(shap_dir,f))
+    
+    #Remove intercept and BIAS
+    shap <- shap[,!(colnames(shap) %in% c("BIAS","(Intercept)")),drop=FALSE]
+
+    #Extract the TF
+    pretarget <- str_split_fixed(colnames(shap),":",2)
+    tf <- apply(pretarget,1,function(x) x[!str_starts(x,"chr")])  
+    unique_tfs <- unique(tf)
+
+    #Allocate matrix, cell x TF
+    outmat <- matrix(nrow=nrow(shap), ncol=length(unique_tfs))
+    colnames(outmat) <- unique_tfs
+    rownames(outmat) <- sprintf("cell%s",1:nrow(outmat)) #there are no cell names in shap matrix
+    
+    #Sum up shaps for each TF
+    for(i in 1:length(unique_tfs)){
+      outmat[,i] <- rowSums(abs(shap[,tf==unique_tfs[i],drop=FALSE]))
+    }    
+
+    all_shap_cell[[f]] <- outmat
+  }
+  
+  #Sum up all matrices ; extract function for this, can do on the next level too
+  sum_shap <- SumListMatrices(all_shap_cell)  #note: no row names! issue?
+
+  if(!file.exists(dir_shapsummary_cell)){
+    dir.create(dir_shapsummary_cell)
+  }
+  
+  ## Save summarized SHAPs, region ignored
+  saveRDS(sum_shap, file.path(dir_shapsummary_cell,paste(task_id,".RDS")))
+}
+
+#' Output the sum of all matrices, with dimensions adapted to have rows and columns
+#' of each matrix
+SumListMatrices <- function(listmat){
+  
+  #print(head(listmat))
+  unique_cols <- sort(unique(unlist(lapply(listmat, colnames))))
+  unique_rows <- sort(unique(unlist(lapply(listmat, rownames))))
+  outmat <- matrix(0, nrow = length(unique_rows), ncol = length(unique_cols))
+  rownames(outmat) <- unique_rows
+  colnames(outmat) <- unique_cols
+  for(i in 1:length(listmat)){
+    thismat <- listmat[[i]]
+    #print(head(thismat))
+    outmat[rownames(thismat), colnames(thismat)] <- outmat[rownames(thismat), colnames(thismat)] + thismat
+  }
+  outmat
+}
+
+# 
+# SummarizeShapByCellParallel <- function(nando_dir){
+#   
+#   shap_dir <- file.path(nando_dir, "shap")
+#   
+#   #Read list of clusterings  
+#   #summarize_shap_for_cluster <- ReadNandoClustering()
+#   
+#   #Which files are there to process?
+#   list_shap_files <- list.files(shap_dir)
+#   list_shap_files <- list_shap_files[str_starts(list_shap_files, "shap ")]
+#   
+#   #Figure out how to divide it all for SLURM
+#   num_tasks <- as.integer(Sys.getenv("SLURM_ARRAY_TASK_COUNT"))
+#   task_id <- as.integer(Sys.getenv("SLURM_ARRAY_TASK_ID"))
+#   
+#   num_tasks=1000
+#   task_id=0
+#   
+#   if(is.na(num_tasks)){
+#     print("SLURM jobarray not detected; running in a single thread")
+#     num_tasks <- 1  
+#     task_id <- 0
+#   } else {
+#     print(paste("Divide slurm",num_tasks,task_id))
+#   }
+#   
+#   ## Figure out which files this particular job should do
+#   shap_file_for_task <- (1:length(list_shap_files))%%num_tasks
+#   list_files_to_process <- list_shap_files[shap_file_for_task==task_id]
+#   print("Will process ===========================")
+#   print(list_files_to_process)
+#   print("========================================")
+#   
+#   ## Do the actual work
+#   SummarizeShapByCell(
+#     nando_dir, shap_dir, list_files_to_process, task_id)
+#   
+#   print("Finished summarizing shaps")
+# }
+# 
+# SummarizeShapByCellParallel(nando_dir)
 
 
 ################################################################################
@@ -465,6 +583,25 @@ LoadNandoNetworks <- function(nando_dir, keep_clusters=NULL){
 }
 
 
+
+LoadCellShaps <- function(nando_dir){
+  
+  #Load all genes  
+  print("Loading all per-cell SHAP scores...")
+  shaps_dir <- file.path(nando_dir,"summarizedshapcells")
+  list_shaps <- list()
+  for(f in list.files(shaps_dir)){
+    if(str_ends(f,"RDS")){
+      print(f)
+      list_shaps[[f]] <- readRDS(file.path(shaps_dir,f))
+    }
+  }
+  sum_shaps <- SumListMatrices(list_shaps)
+  
+  sum_shaps[sprintf("cell%s",1:nrow(sum_shaps)),]  #ensure right order vs adata
+}
+
+#LoadCellShaps(nando_dir)
 
 
 ################################################################################

@@ -14,6 +14,8 @@ SummarizeShapByCluster(
 )
 }
 \arguments{
+\item{nando_dir}{The directory holding per-cluster SHAP scores}
+
 \item{shap_dir}{Directory with SHAP per cell}
 
 \item{list_files_to_process}{List of files to process}
