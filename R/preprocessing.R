@@ -287,7 +287,7 @@ SummarizeShapByClusterParallel <- function(nando_dir){
   shap_dir <- file.path(nando_dir, "shap")
 
   #Read list of clusterings  
-  summarize_shap_for_cluster <- ReadNandoClustering()
+  summarize_shap_for_cluster <- ReadNandoClustering(nando_dir)
   
   #Which files are there to process?
   list_shap_files <- list.files(shap_dir)
@@ -397,48 +397,6 @@ SumListMatrices <- function(listmat){
   outmat
 }
 
-# 
-# SummarizeShapByCellParallel <- function(nando_dir){
-#   
-#   shap_dir <- file.path(nando_dir, "shap")
-#   
-#   #Read list of clusterings  
-#   #summarize_shap_for_cluster <- ReadNandoClustering()
-#   
-#   #Which files are there to process?
-#   list_shap_files <- list.files(shap_dir)
-#   list_shap_files <- list_shap_files[str_starts(list_shap_files, "shap ")]
-#   
-#   #Figure out how to divide it all for SLURM
-#   num_tasks <- as.integer(Sys.getenv("SLURM_ARRAY_TASK_COUNT"))
-#   task_id <- as.integer(Sys.getenv("SLURM_ARRAY_TASK_ID"))
-#   
-#   num_tasks=1000
-#   task_id=0
-#   
-#   if(is.na(num_tasks)){
-#     print("SLURM jobarray not detected; running in a single thread")
-#     num_tasks <- 1  
-#     task_id <- 0
-#   } else {
-#     print(paste("Divide slurm",num_tasks,task_id))
-#   }
-#   
-#   ## Figure out which files this particular job should do
-#   shap_file_for_task <- (1:length(list_shap_files))%%num_tasks
-#   list_files_to_process <- list_shap_files[shap_file_for_task==task_id]
-#   print("Will process ===========================")
-#   print(list_files_to_process)
-#   print("========================================")
-#   
-#   ## Do the actual work
-#   SummarizeShapByCell(
-#     nando_dir, shap_dir, list_files_to_process, task_id)
-#   
-#   print("Finished summarizing shaps")
-# }
-# 
-# SummarizeShapByCellParallel(nando_dir)
 
 
 ################################################################################
@@ -600,6 +558,27 @@ LoadCellShaps <- function(nando_dir){
   
   sum_shaps[sprintf("cell%s",1:nrow(sum_shaps)),]  #ensure right order vs adata
 }
+
+#' Turn per-cell SHAPs into a seurat assay
+#'
+#'@import Seurat
+#'@return TODO
+
+CellShapsToSeurat <- function(nando_dir, adata){
+  
+  #OR: load cell names from clustering? 
+  
+  shapmat <- t(LoadCellShaps(nando_dir))
+  colnames(shapmat) <- colnames(adata)
+  
+  assay <- Seurat::CreateSCTAssayObject(
+    counts=shapmat,  # features x cells
+    umi.assay = "SHAP",
+  )
+  adata[["SHAP"]] <- assay
+  adata
+}
+
 
 #LoadCellShaps(nando_dir)
 
