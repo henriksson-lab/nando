@@ -317,7 +317,7 @@ SummarizeShapByClusterParallel <- function(nando_dir){
 
   ## Summarize, based on cells
   SummarizeShapByCell(
-    nando_dir, shap_dir, list_files_to_process, task_id)
+    nando_dir, shap_dir, list_files_to_process, summarize_shap_for_cluster, task_id)
   
   print("Finished summarizing shaps")
 }
@@ -335,7 +335,7 @@ SummarizeShapByClusterParallel <- function(nando_dir){
 #' @param list_files_to_process List of files to process
 #' @param task_id Process ID when multiprocessing, or 0
 #' @return Nothing
-SummarizeShapByCell <- function(nando_dir, shap_dir, list_files_to_process, task_id){
+SummarizeShapByCell <- function(nando_dir, shap_dir, list_files_to_process, summarize_shap_for_cluster, task_id){
 
   dir_shapsummary_cell <- file.path(nando_dir,"summarizedshapcells")
   
@@ -541,7 +541,10 @@ LoadNandoNetworks <- function(nando_dir, keep_clusters=NULL){
 }
 
 
-
+#' Read per-cell/TF SHAP scores
+#' @return Matrix of scores
+#' 
+#' @export
 LoadCellShaps <- function(nando_dir){
   
   #Load all genes  
@@ -555,32 +558,30 @@ LoadCellShaps <- function(nando_dir){
     }
   }
   sum_shaps <- SumListMatrices(list_shaps)
-  
-  sum_shaps[sprintf("cell%s",1:nrow(sum_shaps)),]  #ensure right order vs adata
+  sum_shaps <- sum_shaps[sprintf("cell%s",1:nrow(sum_shaps)),]  #ensure right order vs adata
+  rownames(sum_shaps) <- rownames(ReadNandoClustering(nando_dir))
+  sum_shaps
 }
 
 #' Turn per-cell SHAPs into a seurat assay
 #'
+#'@return Seurat assay, to be added by adata[["SHAP"]] <- CellShapsToSeurat(nando_dir)
+#'
 #'@import Seurat
-#'@return TODO
-
-CellShapsToSeurat <- function(nando_dir, adata){
-  
-  #OR: load cell names from clustering? 
+#'@export
+CellShapsToSeurat <- function(nando_dir){
   
   shapmat <- t(LoadCellShaps(nando_dir))
-  colnames(shapmat) <- colnames(adata)
+
+  #TODO cache matrix?
   
-  assay <- Seurat::CreateSCTAssayObject(
+  Seurat::CreateAssayObject(
     counts=shapmat,  # features x cells
     umi.assay = "SHAP",
   )
-  adata[["SHAP"]] <- assay
-  adata
 }
 
 
-#LoadCellShaps(nando_dir)
 
 
 ################################################################################
