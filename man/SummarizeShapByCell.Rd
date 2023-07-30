@@ -4,7 +4,13 @@
 \alias{SummarizeShapByCell}
 \title{Compute summarized SHAP values for each TF in each cell.}
 \usage{
-SummarizeShapByCell(nando_dir, shap_dir, list_files_to_process, task_id)
+SummarizeShapByCell(
+  nando_dir,
+  shap_dir,
+  list_files_to_process,
+  summarize_shap_for_cluster,
+  task_id
+)
 }
 \arguments{
 \item{nando_dir}{The directory holding per-cluster SHAP scores}
